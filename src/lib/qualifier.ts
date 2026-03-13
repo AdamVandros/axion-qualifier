@@ -43,47 +43,38 @@ Based on the website content provided, return a JSON object with exactly these f
 Return ONLY the JSON object. No markdown, no explanation, no backticks.`;
 
 export async function scrapeWebsite(url: string): Promise<string> {
-  // Normalize URL
   let normalizedUrl = url.trim();
   if (!normalizedUrl.startsWith('http')) {
     normalizedUrl = 'https://' + normalizedUrl;
   }
 
-  const pagesToTry = [
-    normalizedUrl,
-    normalizedUrl.replace(/\/$/, '') + '/about',
-    normalizedUrl.replace(/\/$/, '') + '/services',
-  ];
-
+  const base = normalizedUrl.replace(/\/$/, '');
+  const pagesToTry = [base, `${base}/about`, `${base}/services`];
   let combinedText = '';
 
   for (const pageUrl of pagesToTry) {
     try {
-      const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(pageUrl)}`, {
-        signal: AbortSignal.timeout(8000),
+      const response = await fetch(pageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+        },
+        signal: AbortSignal.timeout(10000),
       });
-      
       if (!response.ok) continue;
-      
-      const data = await response.json();
-      const html = data.contents || '';
-      
-      // Strip HTML tags and clean up text
+      const html = await response.text();
       const text = html
         .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+        .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
         .replace(/<[^>]+>/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
-        .slice(0, 2000); // limit per page
-      
-      if (text.length > 100) {
-        combinedText += `\n\n[PAGE: ${pageUrl}]\n${text}`;
-      }
-    } catch {
-      // Continue to next page
-    }
+        .slice(0, 2500);
+      if (text.length > 100) combinedText += `\n\n[PAGE: ${pageUrl}]\n${text}`;
+    } catch { }
   }
-
-  return combinedText.slice(0, 5000) || 'Could not fetch website content';
+  return combinedText.slice(0, 6000) || 'Could not fetch website content';
 }
