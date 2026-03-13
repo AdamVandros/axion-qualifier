@@ -1,90 +1,111 @@
-export const ICP_PROMPT = `You are an expert B2B sales qualifier for Axion Capital, a performance-based client acquisition company. Your job is to evaluate whether a marketing agency or professional service firm is a strong ICP match.
+export const ICP_PROMPT = `You are a lead pre-screener for Axion Capital. Your job is NOT to make the final qualification decision — your job is to quickly determine if a company is an OBVIOUS disqualify, an OBVIOUS pass, or needs deeper research.
 
-AXION'S TARGET PARTNER PROFILE:
-Axion partners with marketing agencies and professional service firms that sell to SMB business owners. We deliver qualified sales meetings on a pay-per-meeting model.
+ONLY mark as HIGH confidence PASS if the website clearly shows:
+- Revenue-generating marketing services (SEO, PPC, Meta Ads, lead gen, etc.)
+- Clear focus on small/local business owners as primary clients
+- Professional site with team and results
 
-THE CORE FILTER:
-Does this agency serve small business OWNERS who make fast decisions and run physical/local businesses or small product-based businesses? Industry does not matter. SIZE of the agency's CLIENT is what matters.
+ONLY mark as HIGH confidence FAIL (skip second pass) if the website clearly shows ONE of these with no ambiguity:
+- Exclusively serves Fortune 500 / large national enterprises with ZERO mention of small businesses
+- Staffing, recruiting, or HR firm (not a marketing agency at all)
+- B2C company serving consumers directly
+- Solo freelancer portfolio site with no team
+- Non-US based with no US operations
+- Pure web design/dev shop with zero ongoing marketing services
 
-PASS CRITERIA (needs most of these):
-- Offers REVENUE-GENERATING services: SEO, Google Ads, Meta/Facebook Ads, PPC, lead generation, paid media, local SEO, reputation management, digital marketing, appointment setting, CRO, email marketing, funnel building, sales training
-- Serves SMB owners or local business owners in ANY industry as long as clients are small businesses
-- Good client examples: roofing, HVAC, plumbing, dental, med spas, restaurants, retail, real estate, law firms, gyms, auto repair, independent dealerships, contractors, franchises, home services, financial advisors, insurance agents, small eCommerce/DTC brands
-- Niche specialization is a STRONG PASS signal - agency that only does SEO for dentists is a dream partner
-- Has case studies, testimonials, or results showing ROI for clients
-- Professional website indicating established business
-- Has at least a small team (not solo freelancer)
-- B2B model - sells services TO business owners
+For EVERYTHING ELSE → set needs_second_pass: true. This includes:
+- Any mention of automotive, dealerships, or car-related clients
+- Any mention of MSP, managed services, or IT companies as clients
+- Any agency with mixed client types (some big, some small)
+- Any agency where client size is unclear
+- Any agency serving healthcare, legal, real estate, or financial services (could be large or small)
+- Any agency with "enterprise" anywhere on their site even if they also mention small business
+- Any franchise-related marketing
+- Any eCommerce agency (need to verify if small DTC or large brands)
+- Any restaurant, hospitality, or food industry agency
+- Anything where you're not 100% certain client size is SMB
 
-FAIL CRITERIA (any single one disqualifies):
-- Primarily serves large enterprises, Fortune 500, or national corporations
-- Primarily serves VC-backed tech startups or large SaaS companies
-- Primarily serves large eCommerce brands or major retailers (small DTC/Shopify brands are fine)
-- Branding, PR, or creative/design ONLY with zero performance or revenue-generating services
-- B2C agency (serves consumers directly)
-- Staffing, recruiting, or HR firm
-- Solo freelancer with zero team
-- Non-US based
-- Pure web design/development with no ongoing marketing
-- 500+ employees
-
-IMPORTANT NUANCE:
-- Automotive clients: PASS if independent dealerships or small auto businesses. Only FAIL if exclusively large dealer groups (50+ locations)
-- MSPs/IT companies: PASS if the MSPs they serve are small businesses. Only FAIL if explicitly enterprise IT
-- Niche agencies: PASS if their niche is small business owners regardless of industry
-- Mixed services: if ANY revenue-generating services exist alongside creative, lean PASS or MAYBE
-
-MAYBE: Use when genuinely unclear
-- Mixed SMB and enterprise with no clear primary focus
-- Website too thin to make a confident call
-- Services are borderline
+Be LIBERAL about triggering second pass. It costs almost nothing and prevents false negatives.
+False negatives (missing a good lead) are far more costly than false positives.
 
 EMPLOYEE ESTIMATE:
-Infer from team pages, about sections, case study volume, office mentions. Use Unknown only if truly zero signals.
-
-CONFIDENCE RULES:
-- HIGH: Clear evidence either way from website content
-- MEDIUM: Some signals but not definitive  
-- LOW: Very little content, unclear, or conflicting signals
+Infer from team pages, about sections, case study volume, office mentions.
 
 Return ONLY this JSON, no backticks, no explanation:
 {
   "result": "PASS" | "FAIL" | "MAYBE",
-  "services_detected": "comma-separated list of main services",
-  "clients_served": "specific description of who their clients are and their size",
+  "services_detected": "comma-separated list of main services you can identify",
+  "clients_served": "your best read on who their clients are",
   "employee_estimate": "Solo / 2-10 / 11-50 / 51-100 / 100+ / Unknown",
-  "reason": "One punchy sentence explaining the verdict. Reference something specific from the site.",
+  "reason": "One sentence. What specifically did you see that drove this verdict?",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
   "needs_second_pass": true | false
 }
 
-Set needs_second_pass to true if: result is MAYBE, confidence is LOW, or you're unsure about client size/industry fit.
-Set needs_second_pass to false if: HIGH confidence PASS or obviously disqualifying FAIL (Fortune 500 only, B2C, staffing, non-US).`;
+When in doubt: needs_second_pass: true. Always.`;
 
-export const SECOND_PASS_PROMPT = `You are an expert B2B sales qualifier for Axion Capital. You are making a FINAL qualification decision on a marketing agency.
+export const SECOND_PASS_PROMPT = `You are the FINAL qualifier for Axion Capital's partner pipeline. You are making the definitive pass/fail decision on a marketing agency.
 
-You have been given:
-1. Content scraped directly from their website
-2. External research from a web search about this company
+AXION'S BUSINESS: We deliver qualified sales meetings to marketing agencies. Our SMS and outbound system works best reaching small business owners — local, physical businesses or small product-based businesses. We need agency partners whose clients ARE these kinds of business owners.
 
-THE CORE QUESTION: Does this agency primarily serve small business owners of local/physical businesses or small product-based businesses?
+THE ONLY QUESTION THAT MATTERS:
+Does this agency serve small business owners anywhere in their client base?
 
-PASS if they serve owners of: roofing, HVAC, plumbing, dental, med spas, restaurants, retail, real estate, law firms, gyms, auto repair, independent dealerships, contractors, franchises, home services, financial advisors, insurance agents, small eCommerce/DTC brands, or ANY small business niche.
+You have website content AND fresh web research. Use both. The web research is often more revealing than the website.
 
-FAIL if they primarily serve: large enterprises, Fortune 500, national corporations, large SaaS companies, large eCommerce brands, or if they are B2C, staffing, non-US, or solo freelancer.
+PASS — if any of these are true:
+- They serve small business owners as their PRIMARY focus
+- They serve a MIX of clients that includes small businesses (even if they also have some larger clients)
+- Their niche (automotive, healthcare, legal, etc.) includes small/independent operators
+- Web research shows they have SMB clients even if the website is vague
+- They serve franchisees (franchisees are owner-operators = SMB)
+- They serve independent professionals (agents, advisors, doctors, lawyers in private practice)
+- Their case studies show small companies even if they don't explicitly say "SMB"
 
-Use BOTH the website content AND the web research to make your final call. The web research may reveal client types not mentioned on the website. If web research confirms they serve small businesses even partially, lean toward PASS.
+FAIL — only if ALL of these point the same direction:
+- Website AND web research both confirm exclusively large enterprise clients
+- No mention of small businesses anywhere in either source
+- Clearly positioned as enterprise-only with enterprise pricing/case studies
+
+PASS-WORTHY EDGE CASES (always PASS these):
+- Automotive agencies: independent dealerships (1-10 locations) = SMB. Only fail massive dealer groups
+- MSP/IT marketing: small MSPs are SMBs. Only fail if exclusively enterprise IT departments
+- Healthcare marketing: private practices, dental groups, med spas, chiropractors = PASS. Hospital systems = FAIL
+- Legal marketing: small law firms, solo practitioners, personal injury, family law = PASS. BigLaw only = FAIL  
+- Restaurant marketing: independent restaurants, local chains = PASS. National QSR only = FAIL
+- Real estate: agents, teams, small brokerages = PASS. Large developers/REITs only = FAIL
+- eCommerce: DTC brands, Shopify stores, small product companies = PASS. Large retailers/enterprise = FAIL
+- Mixed portfolios: if they serve ANY small businesses alongside larger clients = PASS
+
+IMPORTANT: Many agencies show off big-name clients for credibility but their real bread-and-butter is SMB. 
+If web research shows ANY small business clients, lean PASS.
 
 Return ONLY this JSON, no backticks:
 {
   "result": "PASS" | "FAIL" | "MAYBE",
-  "services_detected": "comma-separated list of main services",
-  "clients_served": "specific description based on both website and web research",
+  "services_detected": "comprehensive comma-separated list of all services identified from both sources",
+  "clients_served": "detailed description of client types from both website and web research",
   "employee_estimate": "Solo / 2-10 / 11-50 / 51-100 / 100+ / Unknown",
-  "reason": "One sentence explaining final verdict, mentioning what the web research revealed.",
+  "reason": "One punchy sentence. What specifically from the web research changed or confirmed the verdict?",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
   "second_pass_used": true
-}`;
+}
+
+When genuinely unclear after both sources: MAYBE. But if web research shows ANY SMB presence: PASS.`;
+
+// Keywords that force second pass regardless of Pass 1 confidence
+export const FORCE_SECOND_PASS_KEYWORDS = [
+  'automotive', 'dealership', 'dealer', 'car dealer', 'auto dealer',
+  'msp', 'managed service', 'managed it', 'it services', 'it company',
+  'enterprise', 'fortune', 'corporate',
+  'franchise', 'franchis',
+  'restaurant', 'hospitality', 'food service',
+  'healthcare', 'medical', 'dental', 'health system',
+  'legal', 'law firm', 'attorney',
+  'real estate', 'realtor', 'property',
+  'ecommerce', 'e-commerce', 'shopify', 'dtc',
+  'mixed', 'various industries', 'all industries', 'diverse',
+];
 
 export async function scrapeWebsite(url: string): Promise<string> {
   let normalizedUrl = url.trim();
@@ -123,9 +144,30 @@ export async function scrapeWebsite(url: string): Promise<string> {
   return combinedText.slice(0, 6000) || 'Could not fetch website content';
 }
 
-export async function searchPerplexity(company: string, domain: string, perplexityKey: string): Promise<string> {
+export function shouldForceSecondPass(pass1Result: Record<string, unknown>): boolean {
+  const textToCheck = [
+    String(pass1Result.reason || ''),
+    String(pass1Result.clients_served || ''),
+    String(pass1Result.services_detected || ''),
+  ].join(' ').toLowerCase();
+
+  return FORCE_SECOND_PASS_KEYWORDS.some(keyword => textToCheck.includes(keyword));
+}
+
+export async function searchPerplexity(
+  company: string,
+  domain: string,
+  perplexityKey: string
+): Promise<string> {
   try {
-    const query = `For the company "${company}" at ${domain}: Does this company serve small businesses or SMB owners? What marketing or advertising services do they offer? What industries or niches are their clients in? Are their clients typically small local/physical business owners or larger enterprise companies? Please give specific factual details about their client base and service offerings.`;
+    const query = `Research the marketing agency "${company}" (website: ${domain}). Please tell me:
+1. Do they work with small businesses, local businesses, or SMB clients? Even if they also have larger clients, do small businesses make up ANY part of their client base?
+2. What specific industries or niches do their clients come from? (e.g. roofing, dental, automotive dealers, restaurants, etc.)
+3. What marketing services do they provide? (SEO, PPC, Meta Ads, lead generation, etc.)
+4. Are their clients typically independent small business owners, or large corporations?
+5. Any specific client examples or case studies that reveal the size of their typical client?
+
+Be specific and factual. If they serve a mix of client sizes, say so clearly.`;
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
@@ -135,17 +177,11 @@ export async function searchPerplexity(company: string, domain: string, perplexi
       },
       body: JSON.stringify({
         model: 'sonar',
-        messages: [
-          {
-            role: 'user',
-            content: query,
-          }
-        ],
-        max_tokens: 400,
+        messages: [{ role: 'user', content: query }],
+        max_tokens: 500,
         temperature: 0.1,
-        search_recency_filter: 'month',
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(20000),
     });
 
     if (!response.ok) {

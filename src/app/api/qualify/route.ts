@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { ICP_PROMPT, SECOND_PASS_PROMPT, scrapeWebsite, searchPerplexity } from '@/lib/qualifier';
+import {
+  ICP_PROMPT,
+  SECOND_PASS_PROMPT,
+  scrapeWebsite,
+  searchPerplexity,
+  shouldForceSecondPass,
+} from '@/lib/qualifier';
 
 export const maxDuration = 45;
 
@@ -25,7 +31,7 @@ Website: ${website || 'Not provided'}
 Website Content:
 ${websiteContent}
 
-Evaluate this company against the Axion ICP criteria.`;
+Pre-screen this company.`;
 
     const pass1 = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -54,12 +60,15 @@ Evaluate this company against the Axion ICP criteria.`;
       };
     }
 
-    // Decide if we need second pass
+    // Determine if second pass needed
+    // Force second pass on: explicit flag, MAYBE, LOW confidence, OR keyword match in results
+    const forceByKeyword = shouldForceSecondPass(pass1Result);
     const needsSecondPass =
       perplexityKey &&
       (pass1Result.needs_second_pass === true ||
         pass1Result.result === 'MAYBE' ||
-        pass1Result.confidence === 'LOW');
+        pass1Result.confidence === 'LOW' ||
+        forceByKeyword);
 
     if (!needsSecondPass) {
       return NextResponse.json({
@@ -70,8 +79,12 @@ Evaluate this company against the Axion ICP criteria.`;
       });
     }
 
-    // PASS 2 — Perplexity web search + final GPT verdict
-    const perplexityAnswer = await searchPerplexity(company, website || company, perplexityKey as string);
+    // PASS 2 — Perplexity web research + definitive GPT verdict
+    const perplexityAnswer = await searchPerplexity(
+      company,
+      website || company,
+      perplexityKey as string
+    );
 
     const pass2Message = `Company: ${company}
 Website: ${website || 'Not provided'}
@@ -79,10 +92,13 @@ Website: ${website || 'Not provided'}
 WEBSITE CONTENT:
 ${websiteContent}
 
-WEB RESEARCH (from Perplexity):
+WEB RESEARCH (fresh search results about this company):
 ${perplexityAnswer}
 
-Initial assessment was uncertain. Use both sources to make your final call.`;
+Pass 1 initial assessment: ${pass1Result.result} (${pass1Result.confidence} confidence)
+Pass 1 reasoning: ${pass1Result.reason}
+
+Now make the FINAL definitive qualification decision using all available information.`;
 
     const pass2 = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -91,7 +107,7 @@ Initial assessment was uncertain. Use both sources to make your final call.`;
         { role: 'user', content: pass2Message },
       ],
       temperature: 0.1,
-      max_tokens: 350,
+      max_tokens: 400,
     });
 
     const pass2Text = pass2.choices[0]?.message?.content || '{}';
@@ -100,7 +116,6 @@ Initial assessment was uncertain. Use both sources to make your final call.`;
     try {
       pass2Result = JSON.parse(pass2Text);
     } catch {
-      // If pass 2 fails to parse, fall back to pass 1 result
       pass2Result = { ...pass1Result, second_pass_used: true };
     }
 
