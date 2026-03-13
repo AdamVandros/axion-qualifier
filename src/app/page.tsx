@@ -13,6 +13,7 @@ interface QualResult {
   reason: string;
   confidence: string;
   error?: string;
+  second_pass_used?: boolean;
 }
 
 interface ParsedRow {
@@ -463,7 +464,7 @@ export default function Home() {
                   {r.confidence && (
   <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, fontFamily: 'DM Mono, monospace' }}>{r.confidence}</div>
 )}
-{!!(r as Record<string, unknown>).second_pass_used && (
+{r.second_pass_used && (
   <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 2, fontFamily: 'DM Mono, monospace' }}>2nd pass ✓</div>
 )}
                 </div>
