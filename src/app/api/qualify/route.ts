@@ -1,62 +1,114 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { ICP_PROMPT, scrapeWebsite } from '@/lib/qualifier';
+import { ICP_PROMPT, SECOND_PASS_PROMPT, scrapeWebsite, searchPerplexity } from '@/lib/qualifier';
 
-export const maxDuration = 30;
+export const maxDuration = 45;
 
 export async function POST(req: NextRequest) {
   try {
-    const { company, website, apiKey } = await req.json();
+    const { company, website, apiKey, perplexityKey } = await req.json();
 
     if (!apiKey) {
-      return NextResponse.json({ error: 'No API key provided' }, { status: 400 });
+      return NextResponse.json({ error: 'No OpenAI API key provided' }, { status: 400 });
     }
 
     const openai = new OpenAI({ apiKey });
 
-    // Scrape website
+    // PASS 1 — scrape website and get initial verdict
     let websiteContent = 'No website provided';
     if (website) {
       websiteContent = await scrapeWebsite(website);
     }
 
-    const userMessage = `Company: ${company}
+    const pass1Message = `Company: ${company}
 Website: ${website || 'Not provided'}
 Website Content:
 ${websiteContent}
 
 Evaluate this company against the Axion ICP criteria.`;
 
-    const completion = await openai.chat.completions.create({
+    const pass1 = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: ICP_PROMPT },
-        { role: 'user', content: userMessage },
+        { role: 'user', content: pass1Message },
       ],
       temperature: 0.1,
-      max_tokens: 300,
+      max_tokens: 350,
     });
 
-    const responseText = completion.choices[0]?.message?.content || '{}';
-    
-    let parsed;
+    const pass1Text = pass1.choices[0]?.message?.content || '{}';
+
+    let pass1Result: Record<string, unknown>;
     try {
-      parsed = JSON.parse(responseText);
+      pass1Result = JSON.parse(pass1Text);
     } catch {
-      parsed = {
+      pass1Result = {
         result: 'MAYBE',
-        services_detected: 'Parse error',
+        services_detected: 'Unknown',
         clients_served: 'Unknown',
         employee_estimate: 'Unknown',
-        reason: 'Could not parse AI response',
+        reason: 'Could not parse initial response',
         confidence: 'LOW',
+        needs_second_pass: true,
       };
+    }
+
+    // Decide if we need second pass
+    const needsSecondPass =
+      perplexityKey &&
+      (pass1Result.needs_second_pass === true ||
+        pass1Result.result === 'MAYBE' ||
+        pass1Result.confidence === 'LOW');
+
+    if (!needsSecondPass) {
+      return NextResponse.json({
+        company,
+        website,
+        ...pass1Result,
+        second_pass_used: false,
+      });
+    }
+
+    // PASS 2 — Perplexity web search + final GPT verdict
+    const perplexityAnswer = await searchPerplexity(company, website || company, perplexityKey as string);
+
+    const pass2Message = `Company: ${company}
+Website: ${website || 'Not provided'}
+
+WEBSITE CONTENT:
+${websiteContent}
+
+WEB RESEARCH (from Perplexity):
+${perplexityAnswer}
+
+Initial assessment was uncertain. Use both sources to make your final call.`;
+
+    const pass2 = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: SECOND_PASS_PROMPT },
+        { role: 'user', content: pass2Message },
+      ],
+      temperature: 0.1,
+      max_tokens: 350,
+    });
+
+    const pass2Text = pass2.choices[0]?.message?.content || '{}';
+
+    let pass2Result: Record<string, unknown>;
+    try {
+      pass2Result = JSON.parse(pass2Text);
+    } catch {
+      // If pass 2 fails to parse, fall back to pass 1 result
+      pass2Result = { ...pass1Result, second_pass_used: true };
     }
 
     return NextResponse.json({
       company,
       website,
-      ...parsed,
+      ...pass2Result,
+      second_pass_used: true,
     });
 
   } catch (error: unknown) {

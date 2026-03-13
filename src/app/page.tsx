@@ -35,8 +35,10 @@ const RESULT_BG = {
 };
 
 export default function Home() {
-  const [apiKey, setApiKey] = useState('');
+ const [apiKey, setApiKey] = useState('');
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
+  const [perplexityKey, setPerplexityKey] = useState('');
+  const [perplexityKeyVisible, setPerplexityKeyVisible] = useState(false);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [results, setResults] = useState<QualResult[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -113,8 +115,7 @@ export default function Home() {
       const res = await fetch('/api/qualify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company: row.company, website: row.website, apiKey }),
-      });
+        body: JSON.stringify({ company: row.company, website: row.website, apiKey, perplexityKey }),      });
       const data = await res.json();
       if (data.error) {
         return { ...row, result: 'ERROR', services_detected: '', clients_served: '', employee_estimate: '', reason: data.error, confidence: 'LOW', error: data.error };
@@ -273,7 +274,43 @@ export default function Home() {
             Your key is never stored. Get one at platform.openai.com → API Keys. ~$1-3 per 1,000 companies.
           </div>
         </div>
-
+{/* Perplexity API Key */}
+<div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <label style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'DM Mono, monospace', letterSpacing: '0.05em' }}>
+              PERPLEXITY API KEY
+            </label>
+            <span style={{ fontSize: 10, background: 'rgba(99,102,241,0.15)', color: 'var(--accent)', padding: '2px 8px', borderRadius: 4, fontFamily: 'DM Mono, monospace' }}>
+              OPTIONAL — enables 2nd pass on uncertain results
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type={perplexityKeyVisible ? 'text' : 'password'}
+              value={perplexityKey}
+              onChange={e => setPerplexityKey(e.target.value)}
+              placeholder="pplx-..."
+              style={{
+                flex: 1, background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 8, padding: '10px 14px', color: 'var(--text)',
+                fontFamily: 'DM Mono, monospace', fontSize: 13, outline: 'none',
+              }}
+            />
+            <button
+              onClick={() => setPerplexityKeyVisible(!perplexityKeyVisible)}
+              style={{
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 8, padding: '10px 14px', color: 'var(--muted)',
+                cursor: 'pointer', fontSize: 12,
+              }}
+            >
+              {perplexityKeyVisible ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+            Get one free at perplexity.ai/api — ~$5 per 1,000 uncertain companies. Skips PASSes automatically.
+          </div>
+        </div>
         {/* File Upload */}
         <div
           onDrop={handleDrop}
@@ -424,8 +461,11 @@ export default function Home() {
                     fontFamily: 'DM Mono, monospace', fontSize: 11, fontWeight: 500,
                   }}>{r.result}</div>
                   {r.confidence && (
-                    <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, fontFamily: 'DM Mono, monospace' }}>{r.confidence}</div>
-                  )}
+  <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, fontFamily: 'DM Mono, monospace' }}>{r.confidence}</div>
+)}
+{(r as Record<string, unknown>).second_pass_used && (
+  <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 2, fontFamily: 'DM Mono, monospace' }}>2nd pass ✓</div>
+)}
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{r.company}</div>
