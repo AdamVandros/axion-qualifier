@@ -127,7 +127,9 @@ Now make the FINAL definitive qualification decision using all available informa
       company,
       website,
       ...pass2Result,
-      owner_name: pass2Result.owner_name || ownerName,
+      owner_name: (ownerName && ownerName !== 'Unknown')
+        ? ownerName
+        : (pass2Result.owner_name || 'Unknown'),
       second_pass_used: true,
     });
 
