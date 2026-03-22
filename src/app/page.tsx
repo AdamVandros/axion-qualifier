@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 
 interface QualResult {
@@ -21,6 +21,8 @@ interface ParsedRow {
   company: string;
   website: string;
 }
+
+const STORAGE_KEY = 'axion_qualifier_results';
 
 const RESULT_COLORS = {
   PASS: '#22c55e',
@@ -49,8 +51,23 @@ export default function Home() {
   const [fileName, setFileName] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [concurrency] = useState(3);
+  const [restoredCount, setRestoredCount] = useState(0);
   const abortRef = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Restore results from last session on page load
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as QualResult[];
+        if (parsed.length > 0) {
+          setResults(parsed);
+          setRestoredCount(parsed.length);
+        }
+      } catch { /* ignore corrupt data */ }
+    }
+  }, []);
 
   const parseFile = useCallback((file: File) => {
     setFileName(file.name);
@@ -134,6 +151,8 @@ export default function Home() {
     abortRef.current = false;
     setProcessing(true);
     setResults([]);
+    setRestoredCount(0);
+    localStorage.removeItem(STORAGE_KEY);
     setProgress(0);
 
     const allResults: QualResult[] = [];
@@ -151,6 +170,7 @@ export default function Home() {
       completed += batch.length;
       
       setResults([...allResults]);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allResults));
       setProgress(Math.round((completed / rows.length) * 100));
     }
 
@@ -161,6 +181,12 @@ export default function Home() {
   const stopProcessing = () => {
     abortRef.current = true;
     setProcessing(false);
+  };
+
+  const clearResults = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setResults([]);
+    setRestoredCount(0);
   };
 
   const exportResults = () => {
@@ -388,6 +414,19 @@ export default function Home() {
                 Stop
               </button>
             )}
+            {results.length > 0 && !processing && (
+              <button
+                onClick={clearResults}
+                style={{
+                  background: 'transparent', border: '1px solid var(--border)',
+                  borderRadius: 8, padding: '12px 20px',
+                  color: 'var(--muted)', fontWeight: 600, fontSize: 14,
+                  cursor: 'pointer', fontFamily: 'Syne, sans-serif',
+                }}
+              >
+                Clear
+              </button>
+            )}
             {results.length > 0 && (
               <button
                 onClick={exportResults}
@@ -438,6 +477,26 @@ export default function Home() {
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, fontFamily: 'DM Mono, monospace' }}>{stat.label}</div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Restore Banner */}
+        {restoredCount > 0 && !processing && (
+          <div style={{
+            background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)',
+            borderRadius: 10, padding: '12px 18px', marginBottom: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            fontSize: 13,
+          }}>
+            <span style={{ color: 'var(--accent)' }}>
+              Restored {restoredCount} results from your last session.
+            </span>
+            <button
+              onClick={() => setRestoredCount(0)}
+              style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+            >
+              ×
+            </button>
           </div>
         )}
 
