@@ -12,6 +12,7 @@ interface QualResult {
   employee_estimate: string;
   reason: string;
   confidence: string;
+  owner_name?: string;
   error?: string;
   second_pass_used?: boolean;
 }
@@ -119,11 +120,11 @@ export default function Home() {
         body: JSON.stringify({ company: row.company, website: row.website, apiKey, perplexityKey }),      });
       const data = await res.json();
       if (data.error) {
-        return { ...row, result: 'ERROR', services_detected: '', clients_served: '', employee_estimate: '', reason: data.error, confidence: 'LOW', error: data.error };
+        return { ...row, result: 'ERROR', services_detected: '', clients_served: '', employee_estimate: '', reason: data.error, confidence: 'LOW', owner_name: '', error: data.error };
       }
       return data as QualResult;
     } catch (err) {
-      return { ...row, result: 'ERROR', services_detected: '', clients_served: '', employee_estimate: '', reason: 'Network error', confidence: 'LOW' };
+      return { ...row, result: 'ERROR', services_detected: '', clients_served: '', employee_estimate: '', reason: 'Network error', confidence: 'LOW', owner_name: '' };
     }
   };
 
@@ -168,6 +169,7 @@ export default function Home() {
     const exportData = results.map(r => ({
       'Company': r.company,
       'Website': r.website,
+      'Owner / CEO': r.owner_name || '',
       'Result': r.result,
       'Services Detected': r.services_detected,
       'Clients Served': r.clients_served,
@@ -180,14 +182,14 @@ export default function Home() {
     
     // All results
     const ws = XLSX.utils.json_to_sheet(exportData);
-    ws['!cols'] = [20, 30, 10, 30, 30, 15, 50, 10].map(w => ({ wch: w }));
+    ws['!cols'] = [20, 30, 25, 10, 30, 30, 15, 50, 10].map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws, 'All Results');
 
     // PASS only
     const passes = exportData.filter(r => r.Result === 'PASS');
     if (passes.length > 0) {
       const wsPass = XLSX.utils.json_to_sheet(passes);
-      wsPass['!cols'] = [20, 30, 10, 30, 30, 15, 50, 10].map(w => ({ wch: w }));
+      wsPass['!cols'] = [20, 30, 25, 10, 30, 30, 15, 50, 10].map(w => ({ wch: w }));
       XLSX.utils.book_append_sheet(wb, wsPass, 'PASS Only');
     }
 
@@ -195,7 +197,7 @@ export default function Home() {
     const maybes = exportData.filter(r => r.Result === 'MAYBE');
     if (maybes.length > 0) {
       const wsMaybe = XLSX.utils.json_to_sheet(maybes);
-      wsMaybe['!cols'] = [20, 30, 10, 30, 30, 15, 50, 10].map(w => ({ wch: w }));
+      wsMaybe['!cols'] = [20, 30, 25, 10, 30, 30, 15, 50, 10].map(w => ({ wch: w }));
       XLSX.utils.book_append_sheet(wb, wsMaybe, 'MAYBE Only');
     }
 
@@ -476,6 +478,7 @@ export default function Home() {
                   )}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  {r.owner_name && r.owner_name !== 'Unknown' && <div style={{ marginBottom: 4 }}><span style={{ color: 'var(--text)' }}>Owner:</span> {r.owner_name}</div>}
                   {r.services_detected && <div style={{ marginBottom: 4 }}><span style={{ color: 'var(--text)' }}>Services:</span> {r.services_detected}</div>}
                   {r.clients_served && <div style={{ marginBottom: 4 }}><span style={{ color: 'var(--text)' }}>Clients:</span> {r.clients_served}</div>}
                 </div>

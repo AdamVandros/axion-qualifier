@@ -1,19 +1,30 @@
-export const ICP_PROMPT = `You are a lead pre-screener for Axion Capital. Your job is NOT to make the final qualification decision — your job is to quickly determine if a company is an OBVIOUS disqualify, an OBVIOUS pass, or needs deeper research.
+export const ICP_PROMPT = `You are a lead pre-screener for Axion Capital. Your job is to quickly determine if a marketing agency is an OBVIOUS disqualify, an OBVIOUS pass, or needs deeper research.
 
-ONLY mark as HIGH confidence PASS if the website clearly shows:
-- Revenue-generating marketing services (SEO, PPC, Meta Ads, lead gen, etc.)
+Axion delivers qualified sales meetings to marketing agencies. We need agency partners that:
+1. Serve small/local business owners (SMBs)
+2. Offer retainer-based, revenue-driving services (paid ads, SEO, PPC, lead gen) as their PRIMARY service
+3. Have high enough ticket size to justify our partnership (ACV $20k+, typically $2k+/mo retainers)
+
+ONLY mark as HIGH confidence PASS if the website clearly shows ALL of these:
+- Primary services are revenue-driving: paid social/Meta Ads, Google Ads/PPC, SEO, lead generation
 - Clear focus on small/local business owners as primary clients
-- Professional site with team and results
+- Professional site with team and results/case studies showing revenue growth (leads generated, sales increased, conversions improved)
 
-ONLY mark as HIGH confidence FAIL (skip second pass) if the website clearly shows ONE of these with no ambiguity:
+ONLY mark as HIGH confidence FAIL (skip second pass) if the website clearly shows ONE of these:
 - Exclusively serves Fortune 500 / large national enterprises with ZERO mention of small businesses
 - Staffing, recruiting, or HR firm (not a marketing agency at all)
 - B2C company serving consumers directly
 - Solo freelancer portfolio site with no team
 - Non-US based with no US operations
-- Pure web design/dev shop with zero ongoing marketing services
+- PRIMARY service is web design/development (they lead with it, portfolio shows websites they built, case studies showcase site launches — not revenue results)
+- PRIMARY service is branding, creative, photography, or video production (not performance marketing)
+- PR agency (case studies about press coverage and media placements, not revenue growth)
+- Direct mail, signage, print, or referral marketing company
+- Agency has NO mention of paid ads, SEO, PPC, or lead generation anywhere on the site
+- Clearly low-ticket/project-based: advertises month-to-month, one-time projects, or pricing under $1k/mo
 
 For EVERYTHING ELSE → set needs_second_pass: true. This includes:
+- Agency offers web design AND paid ads/SEO (need to determine which is primary)
 - Any mention of automotive, dealerships, or car-related clients
 - Any mention of MSP, managed services, or IT companies as clients
 - Any agency with mixed client types (some big, some small)
@@ -23,13 +34,15 @@ For EVERYTHING ELSE → set needs_second_pass: true. This includes:
 - Any franchise-related marketing
 - Any eCommerce agency (need to verify if small DTC or large brands)
 - Any restaurant, hospitality, or food industry agency
-- Anything where you're not 100% certain client size is SMB
+- Case studies that are ambiguous (could be portfolios or could be results)
+- Any pricing signals on the website that need closer evaluation
+- Anything where you're not 100% certain on client size OR service type
 
 Be LIBERAL about triggering second pass. It costs almost nothing and prevents false negatives.
-False negatives (missing a good lead) are far more costly than false positives.
 
 EMPLOYEE ESTIMATE:
 Infer from team pages, about sections, case study volume, office mentions.
+Note: agencies with fewer than 15 employees are less likely to be a fit, but don't auto-fail on this alone.
 
 Return ONLY this JSON, no backticks, no explanation:
 {
@@ -46,39 +59,57 @@ When in doubt: needs_second_pass: true. Always.`;
 
 export const SECOND_PASS_PROMPT = `You are the FINAL qualifier for Axion Capital's partner pipeline. You are making the definitive pass/fail decision on a marketing agency.
 
-AXION'S BUSINESS: We deliver qualified sales meetings to marketing agencies. Our SMS and outbound system works best reaching small business owners — local, physical businesses or small product-based businesses. We need agency partners whose clients ARE these kinds of business owners.
+AXION'S BUSINESS: We deliver qualified sales meetings to marketing agencies. Our SMS and outbound system works best reaching small business owners — local, physical businesses or small product-based businesses. We need agency partners whose clients ARE these kinds of business owners AND who sell high-ticket retainer services that drive revenue.
 
-THE ONLY QUESTION THAT MATTERS:
-Does this agency serve small business owners anywhere in their client base?
+EVALUATE THESE THREE DIMENSIONS — ALL must be true for PASS:
+
+1. WHO THEY SERVE: Do they work with SMBs / small business owners?
+   - Local businesses, independent operators, small companies (sub $10M revenue)
+   - B2B agencies are fine IF their clients are small (commercial landscaping, cleaning, commercial roofing, etc.)
+
+2. WHAT THEY SELL: Is their PRIMARY service retainer-based and revenue-driving?
+   - GOOD primary services: Paid social/Meta Ads, Google Ads/PPC, SEO, lead generation, digital marketing retainers
+   - BAD primary services: Web design/development, branding, creative, photography, video production, PR, direct mail, signage, referral marketing
+   - KEY TEST: What does the agency LEAD with on their homepage and LinkedIn? What do they talk about first? If they lead with web design or branding but also mention ads — that's a red flag that the revenue-driving services are secondary.
+   - ACV CHECK: Their average contract value should be at least $20-25k/year ($2k+/mo retainers). Signs of low-ticket: month-to-month, one-time projects, pricing under $1k/mo, project-based work.
+
+3. HOW THEY PROVE IT: What do their case studies and results showcase?
+   - GOOD case studies: "Increased leads by 300%", "Generated 50 appointments/month", "Grew revenue by $2M", "Reduced cost per lead to $15" — concrete revenue/lead/conversion metrics
+   - BAD case studies: Portfolio of websites they designed, brand identity work they did, commercials they produced, PR press hits — these are creative showcases, not revenue results
+   - If they call their results page a "portfolio" and it shows websites/creative work → likely a design-first agency
+   - No case studies at all → note as a concern but don't auto-fail
 
 You have website content AND fresh web research. Use both. The web research is often more revealing than the website.
 
-PASS — if any of these are true:
-- They serve small business owners as their PRIMARY focus
-- They serve a MIX of clients that includes small businesses (even if they also have some larger clients)
-- Their niche (automotive, healthcare, legal, etc.) includes small/independent operators
-- Web research shows they have SMB clients even if the website is vague
-- They serve franchisees (franchisees are owner-operators = SMB)
-- They serve independent professionals (agents, advisors, doctors, lawyers in private practice)
-- Their case studies show small companies even if they don't explicitly say "SMB"
+PASS — ALL of these must be true:
+- They serve SMBs / small business owners (even if mixed with some larger clients)
+- Their PRIMARY service is retainer-based and directly drives revenue (paid ads, SEO, PPC, lead gen)
+- Their case studies (if present) showcase revenue/lead/growth results, not just creative work
+- They appear to have a reasonable ticket size (not clearly low-cost or month-to-month)
 
-FAIL — only if ALL of these point the same direction:
-- Website AND web research both confirm exclusively large enterprise clients
-- No mention of small businesses anywhere in either source
-- Clearly positioned as enterprise-only with enterprise pricing/case studies
+FAIL — if ANY of these are true:
+- Exclusively serves large enterprise / Fortune 500 with no SMB clients
+- PRIMARY service is web design/development (they lead with it, portfolio shows websites)
+- PRIMARY service is branding, creative, photography, or video production
+- PR agency (case studies about press coverage, not revenue growth)
+- Direct mail, signage, print, or referral marketing company
+- Clearly low-ticket: month-to-month, very low pricing, one-off project work
+- No mention of paid ads, SEO, PPC, or lead generation anywhere
 
-PASS-WORTHY EDGE CASES (always PASS these):
+NUANCED EDGE CASES:
+- Agency does web design AND paid ads/SEO: lean PASS if they meaningfully offer paid ads/SEO/lead gen AND their case studies show revenue/lead/conversion results. Case studies are the override — strong revenue results = PASS even if web design is also prominently featured. Only FAIL if web design is clearly primary AND case studies are a creative portfolio AND there is no meaningful paid ads/SEO/lead gen presence.
 - Automotive agencies: independent dealerships (1-10 locations) = SMB. Only fail massive dealer groups
-- MSP/IT marketing: small MSPs are SMBs. Only fail if exclusively enterprise IT departments
-- Healthcare marketing: private practices, dental groups, med spas, chiropractors = PASS. Hospital systems = FAIL
-- Legal marketing: small law firms, solo practitioners, personal injury, family law = PASS. BigLaw only = FAIL  
+- MSP/IT marketing: small MSPs are SMBs. Only fail if exclusively enterprise IT
+- Healthcare marketing: private practices, dental, med spas = PASS. Hospital systems = FAIL
+- Legal marketing: small firms, solo practitioners = PASS. BigLaw only = FAIL
 - Restaurant marketing: independent restaurants, local chains = PASS. National QSR only = FAIL
 - Real estate: agents, teams, small brokerages = PASS. Large developers/REITs only = FAIL
-- eCommerce: DTC brands, Shopify stores, small product companies = PASS. Large retailers/enterprise = FAIL
-- Mixed portfolios: if they serve ANY small businesses alongside larger clients = PASS
+- eCommerce: small DTC brands, Shopify stores = PASS. Large retailers = FAIL
+- Franchisees: individual franchise owners are SMBs = PASS
 
-IMPORTANT: Many agencies show off big-name clients for credibility but their real bread-and-butter is SMB. 
-If web research shows ANY small business clients, lean PASS.
+EMPLOYEE SIGNAL: Agencies with fewer than 15 employees are less likely to be a fit — note as a concern in your reasoning but don't auto-fail on headcount alone.
+
+IMPORTANT: Many agencies show off big-name clients for credibility but their real bread-and-butter is SMB. That's fine — evaluate based on the bulk of their client base, not just their trophy logos.
 
 Return ONLY this JSON, no backticks:
 {
@@ -86,15 +117,17 @@ Return ONLY this JSON, no backticks:
   "services_detected": "comprehensive comma-separated list of all services identified from both sources",
   "clients_served": "detailed description of client types from both website and web research",
   "employee_estimate": "Solo / 2-10 / 11-50 / 51-100 / 100+ / Unknown",
-  "reason": "One punchy sentence. What specifically from the web research changed or confirmed the verdict?",
+  "reason": "One punchy sentence. What specifically made this a pass or fail? Reference the three dimensions.",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
+  "owner_name": "Full name and title of the agency owner/CEO/founder if found in research, or 'Unknown'",
   "second_pass_used": true
 }
 
-When genuinely unclear after both sources: MAYBE. But if web research shows ANY SMB presence: PASS.`;
+When genuinely unclear after both sources: MAYBE. But require evidence across all three dimensions to PASS.`;
 
 // Keywords that force second pass regardless of Pass 1 confidence
 export const FORCE_SECOND_PASS_KEYWORDS = [
+  // Industry verticals that need deeper evaluation
   'automotive', 'dealership', 'dealer', 'car dealer', 'auto dealer',
   'msp', 'managed service', 'managed it', 'it services', 'it company',
   'enterprise', 'fortune', 'corporate',
@@ -105,6 +138,14 @@ export const FORCE_SECOND_PASS_KEYWORDS = [
   'real estate', 'realtor', 'property',
   'ecommerce', 'e-commerce', 'shopify', 'dtc',
   'mixed', 'various industries', 'all industries', 'diverse',
+  // Service types that may disqualify — need second pass to confirm if primary
+  'web design', 'website design', 'web development',
+  'branding', 'brand identity', 'brand strategy',
+  'creative agency', 'creative studio',
+  'photography', 'video production', 'videography',
+  'direct mail', 'signage', 'print',
+  'public relations', 'pr agency', 'media relations',
+  'referral marketing', 'referral program',
 ];
 
 export async function scrapeWebsite(url: string): Promise<string> {
@@ -114,7 +155,16 @@ export async function scrapeWebsite(url: string): Promise<string> {
   }
 
   const base = normalizedUrl.replace(/\/$/, '');
-  const pagesToTry = [base, `${base}/about`, `${base}/services`];
+  const pagesToTry = [
+    base,
+    `${base}/about`,
+    `${base}/services`,
+    `${base}/case-studies`,
+    `${base}/portfolio`,
+    `${base}/work`,
+    `${base}/results`,
+    `${base}/pricing`,
+  ];
   let combinedText = '';
 
   for (const pageUrl of pagesToTry) {
@@ -141,7 +191,7 @@ export async function scrapeWebsite(url: string): Promise<string> {
       if (text.length > 100) combinedText += `\n\n[PAGE: ${pageUrl}]\n${text}`;
     } catch { }
   }
-  return combinedText.slice(0, 6000) || 'Could not fetch website content';
+  return combinedText.slice(0, 10000) || 'Could not fetch website content';
 }
 
 export function shouldForceSecondPass(pass1Result: Record<string, unknown>): boolean {
@@ -154,6 +204,37 @@ export function shouldForceSecondPass(pass1Result: Record<string, unknown>): boo
   return FORCE_SECOND_PASS_KEYWORDS.some(keyword => textToCheck.includes(keyword));
 }
 
+export async function searchOwner(
+  company: string,
+  domain: string,
+  perplexityKey: string
+): Promise<string> {
+  try {
+    const query = `Who is the founder, CEO, or owner of the marketing agency "${company}" (website: ${domain})? Return just the person's name and title if found. If multiple owners/founders, list them. If unknown, say "Unknown".`;
+
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${perplexityKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar',
+        messages: [{ role: 'user', content: query }],
+        max_tokens: 100,
+        temperature: 0.1,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) return 'Unknown';
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || 'Unknown';
+  } catch {
+    return 'Unknown';
+  }
+}
+
 export async function searchPerplexity(
   company: string,
   domain: string,
@@ -163,11 +244,13 @@ export async function searchPerplexity(
     const query = `Research the marketing agency "${company}" (website: ${domain}). Please tell me:
 1. Do they work with small businesses, local businesses, or SMB clients? Even if they also have larger clients, do small businesses make up ANY part of their client base?
 2. What specific industries or niches do their clients come from? (e.g. roofing, dental, automotive dealers, restaurants, etc.)
-3. What marketing services do they provide? (SEO, PPC, Meta Ads, lead generation, etc.)
+3. What marketing services do they provide? What is their PRIMARY service — what do they lead with? (SEO, PPC, Meta Ads, lead generation, web design, branding, PR, etc.)
 4. Are their clients typically independent small business owners, or large corporations?
-5. Any specific client examples or case studies that reveal the size of their typical client?
+5. Any specific client examples or case studies? Do their case studies showcase revenue/lead/conversion results, or do they showcase creative work like websites, logos, and brand identity?
+6. Is their business model retainer-based (monthly contracts, ongoing services) or project-based (one-time website builds, campaigns)?
+7. Any pricing information available? What are their typical price points or retainer fees?
 
-Be specific and factual. If they serve a mix of client sizes, say so clearly.`;
+Be specific and factual. If they serve a mix of client sizes, say so clearly. Focus especially on what their PRIMARY service is and whether it directly drives revenue for their clients.`;
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
