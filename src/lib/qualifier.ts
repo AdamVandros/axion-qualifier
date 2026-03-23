@@ -40,16 +40,11 @@ For EVERYTHING ELSE → set needs_second_pass: true. This includes:
 
 Be LIBERAL about triggering second pass. It costs almost nothing and prevents false negatives.
 
-EMPLOYEE ESTIMATE:
-Infer from team pages, about sections, case study volume, office mentions.
-Note: agencies with fewer than 15 employees are less likely to be a fit, but don't auto-fail on this alone.
-
 Return ONLY this JSON, no backticks, no explanation:
 {
   "result": "PASS" | "FAIL" | "MAYBE",
   "services_detected": "comma-separated list of main services you can identify",
   "clients_served": "your best read on who their clients are",
-  "employee_estimate": "Solo / 2-10 / 11-50 / 51-100 / 100+ / Unknown",
   "reason": "One sentence. What specifically did you see that drove this verdict?",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
   "needs_second_pass": true | false
@@ -107,8 +102,6 @@ NUANCED EDGE CASES:
 - eCommerce: small DTC brands, Shopify stores = PASS. Large retailers = FAIL
 - Franchisees: individual franchise owners are SMBs = PASS
 
-EMPLOYEE SIGNAL: Agencies with fewer than 15 employees are less likely to be a fit — note as a concern in your reasoning but don't auto-fail on headcount alone.
-
 IMPORTANT: Many agencies show off big-name clients for credibility but their real bread-and-butter is SMB. That's fine — evaluate based on the bulk of their client base, not just their trophy logos.
 
 Return ONLY this JSON, no backticks:
@@ -116,7 +109,6 @@ Return ONLY this JSON, no backticks:
   "result": "PASS" | "FAIL" | "MAYBE",
   "services_detected": "comprehensive comma-separated list of all services identified from both sources",
   "clients_served": "detailed description of client types from both website and web research",
-  "employee_estimate": "Solo / 2-10 / 11-50 / 51-100 / 100+ / Unknown",
   "reason": "One punchy sentence. What specifically made this a pass or fail? Reference the three dimensions.",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
   "owner_name": "Full name and title of the agency owner/CEO/founder if found in research, or 'Unknown'",
@@ -249,6 +241,7 @@ export async function searchPerplexity(
 5. Any specific client examples or case studies? Do their case studies showcase revenue/lead/conversion results, or do they showcase creative work like websites, logos, and brand identity?
 6. Is their business model retainer-based (monthly contracts, ongoing services) or project-based (one-time website builds, campaigns)?
 7. Any pricing information available? What are their typical price points or retainer fees?
+8. Who is the founder, CEO, or owner of this agency? Full name and title if known.
 
 Be specific and factual. If they serve a mix of client sizes, say so clearly. Focus especially on what their PRIMARY service is and whether it directly drives revenue for their clients.`;
 
@@ -261,7 +254,7 @@ Be specific and factual. If they serve a mix of client sizes, say so clearly. Fo
       body: JSON.stringify({
         model: 'sonar',
         messages: [{ role: 'user', content: query }],
-        max_tokens: 500,
+        max_tokens: 600,
         temperature: 0.1,
       }),
       signal: AbortSignal.timeout(20000),

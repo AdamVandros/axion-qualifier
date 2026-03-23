@@ -54,7 +54,6 @@ Pre-screen this company.`;
         result: 'MAYBE',
         services_detected: 'Unknown',
         clients_served: 'Unknown',
-        employee_estimate: 'Unknown',
         reason: 'Could not parse initial response',
         confidence: 'LOW',
         needs_second_pass: true,
@@ -84,11 +83,9 @@ Pre-screen this company.`;
       });
     }
 
-    // PASS 2 — Perplexity web research + definitive GPT verdict (run owner lookup in parallel)
-    const [perplexityAnswer, ownerName] = await Promise.all([
-      searchPerplexity(company, website || company, perplexityKey as string),
-      searchOwner(company, website || company, perplexityKey as string),
-    ]);
+    // PASS 2 — Perplexity web research + definitive GPT verdict
+    // Owner info is now included in Perplexity's 8th question, extracted by GPT into owner_name
+    const perplexityAnswer = await searchPerplexity(company, website || company, perplexityKey as string);
 
     const pass2Message = `Company: ${company}
 Website: ${website || 'Not provided'}
@@ -127,9 +124,7 @@ Now make the FINAL definitive qualification decision using all available informa
       company,
       website,
       ...pass2Result,
-      owner_name: (ownerName && ownerName !== 'Unknown')
-        ? ownerName
-        : (pass2Result.owner_name || 'Unknown'),
+      owner_name: pass2Result.owner_name || 'Unknown',
       second_pass_used: true,
     });
 
