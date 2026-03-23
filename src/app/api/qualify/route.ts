@@ -4,7 +4,6 @@ import {
   ICP_PROMPT,
   SECOND_PASS_PROMPT,
   scrapeWebsite,
-  searchOwner,
   searchPerplexity,
   shouldForceSecondPass,
 } from '@/lib/qualifier';
@@ -71,20 +70,15 @@ Pre-screen this company.`;
         forceByKeyword);
 
     if (!needsSecondPass) {
-      const ownerName = perplexityKey
-        ? await searchOwner(company, website || company, perplexityKey as string)
-        : '';
       return NextResponse.json({
         company,
         website,
         ...pass1Result,
-        owner_name: ownerName,
         second_pass_used: false,
       });
     }
 
     // PASS 2 — Perplexity web research + definitive GPT verdict
-    // Owner info is now included in Perplexity's 8th question, extracted by GPT into owner_name
     const perplexityAnswer = await searchPerplexity(company, website || company, perplexityKey as string);
 
     const pass2Message = `Company: ${company}
@@ -124,7 +118,6 @@ Now make the FINAL definitive qualification decision using all available informa
       company,
       website,
       ...pass2Result,
-      owner_name: pass2Result.owner_name || 'Unknown',
       second_pass_used: true,
     });
 

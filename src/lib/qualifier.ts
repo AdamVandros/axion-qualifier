@@ -111,7 +111,6 @@ Return ONLY this JSON, no backticks:
   "clients_served": "detailed description of client types from both website and web research",
   "reason": "One punchy sentence. What specifically made this a pass or fail? Reference the three dimensions.",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
-  "owner_name": "Full name and title of the agency owner/CEO/founder if found in research, or 'Unknown'",
   "second_pass_used": true
 }
 
@@ -196,37 +195,6 @@ export function shouldForceSecondPass(pass1Result: Record<string, unknown>): boo
   return FORCE_SECOND_PASS_KEYWORDS.some(keyword => textToCheck.includes(keyword));
 }
 
-export async function searchOwner(
-  company: string,
-  domain: string,
-  perplexityKey: string
-): Promise<string> {
-  try {
-    const query = `Who is the founder, CEO, or owner of the marketing agency "${company}" (website: ${domain})? Return just the person's name and title if found. If multiple owners/founders, list them. If unknown, say "Unknown".`;
-
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${perplexityKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'sonar',
-        messages: [{ role: 'user', content: query }],
-        max_tokens: 100,
-        temperature: 0.1,
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) return 'Unknown';
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() || 'Unknown';
-  } catch {
-    return 'Unknown';
-  }
-}
-
 export async function searchPerplexity(
   company: string,
   domain: string,
@@ -241,7 +209,6 @@ export async function searchPerplexity(
 5. Any specific client examples or case studies? Do their case studies showcase revenue/lead/conversion results, or do they showcase creative work like websites, logos, and brand identity?
 6. Is their business model retainer-based (monthly contracts, ongoing services) or project-based (one-time website builds, campaigns)?
 7. Any pricing information available? What are their typical price points or retainer fees?
-8. Who is the founder, CEO, or owner of this agency? Full name and title if known.
 
 Be specific and factual. If they serve a mix of client sizes, say so clearly. Focus especially on what their PRIMARY service is and whether it directly drives revenue for their clients.`;
 
@@ -254,7 +221,7 @@ Be specific and factual. If they serve a mix of client sizes, say so clearly. Fo
       body: JSON.stringify({
         model: 'sonar',
         messages: [{ role: 'user', content: query }],
-        max_tokens: 600,
+        max_tokens: 500,
         temperature: 0.1,
       }),
       signal: AbortSignal.timeout(20000),

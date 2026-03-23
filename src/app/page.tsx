@@ -142,11 +142,11 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.error) {
-        return { ...row, result: 'ERROR', services_detected: '', clients_served: '', reason: data.error, confidence: 'LOW', owner_name: '', error: data.error };
+        return { ...row, result: 'ERROR', services_detected: '', clients_served: '', reason: data.error, confidence: 'LOW', error: data.error };
       }
       return data as EnrichedResult;
     } catch {
-      return { ...row, result: 'ERROR', services_detected: '', clients_served: '', reason: 'Network error', confidence: 'LOW', owner_name: '' };
+      return { ...row, result: 'ERROR', services_detected: '', clients_served: '', reason: 'Network error', confidence: 'LOW' };
     }
   };
 
@@ -288,7 +288,6 @@ export default function Home() {
           clients_served: row['Clients Served'] || '',
           reason: row['Reason'] || '',
           confidence: row['Confidence'] || 'LOW',
-          owner_name: row['Owner / CEO'] || '',
           notes: row['Notes'] || '',
           userDecision: (['PASS', 'MAYBE', 'FAIL'].includes(row['Your Decision'] || '') ? row['Your Decision'] : '') as EnrichedResult['userDecision'],
           normalizedDomain: normalizeDomain(row['Website'] || ''),
@@ -322,7 +321,6 @@ export default function Home() {
     const exportData = results.map(r => ({
       'Company': r.company,
       'Website': r.website,
-      'Owner / CEO': r.owner_name || '',
       'Result': r.result,
       'Your Decision': r.userDecision || '',
       'Services Detected': r.services_detected,
@@ -332,7 +330,7 @@ export default function Home() {
       'Notes': r.notes || '',
     }));
 
-    const colWidths = [20, 30, 25, 10, 14, 30, 30, 50, 10, 30].map(w => ({ wch: w }));
+    const colWidths = [20, 30, 10, 14, 30, 30, 50, 10, 30].map(w => ({ wch: w }));
     const wb = XLSX.utils.book_new();
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -791,9 +789,6 @@ export default function Home() {
                     <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', animation: 'expand-in 0.2s ease' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 10 }}>
                         <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'DM Mono, monospace', fontWeight: 300, lineHeight: 1.6 }}>
-                          {r.owner_name && r.owner_name !== 'Unknown' && (
-                            <div style={{ marginBottom: 4 }}><span style={{ color: 'var(--text)', fontWeight: 400 }}>Owner</span> {r.owner_name}</div>
-                          )}
                           {r.services_detected && (
                             <div style={{ marginBottom: 4 }}><span style={{ color: 'var(--text)', fontWeight: 400 }}>Services</span> {r.services_detected}</div>
                           )}

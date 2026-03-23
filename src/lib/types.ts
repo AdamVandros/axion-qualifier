@@ -8,7 +8,6 @@ export interface QualResult {
   clients_served: string;
   reason: string;
   confidence: string;
-  owner_name?: string;
   error?: string;
   second_pass_used?: boolean;
 }
